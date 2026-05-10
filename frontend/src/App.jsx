@@ -1,7 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import OnboardingPage from "./app/onboarding/page";
-import SignIn from "./components/Auth/SignIn";
-import SignUp from "./components/Auth/SignUp";
 import Dashboard from "./components/Dashboard/Dashboard";
 import FestivalPredictor from "./components/Festival/FestivalPredictor";
 import FraudShieldPage from "./components/FraudShield/FraudShieldPage";
@@ -11,6 +9,7 @@ import EMITrapDetector from "./components/EMI/EMITrapDetector";
 import Sidebar from "./components/Layout/Sidebar";
 import TopBar from "./components/Layout/TopBar";
 import SubscriptionGraveyard from "./components/Subscriptions/SubscriptionGraveyard";
+import IntroFlow from "./components/intro/IntroFlow";
 import { ToastProvider } from "./components/common/Toast";
 import { SkeletonCard } from "./components/common/SkeletonCard";
 import { useAuth } from "./context/AuthContext";
@@ -18,18 +17,6 @@ import { getUsers } from "./services/api";
 
 const App = () => {
   const { user, loading: authLoading, logout, isAuthenticated } = useAuth();
-  // Premium signup (3D card) is the signup screen; show it first so new visitors see it.
-  // "Sign in" on that page switches to signin. Deep-link: ?auth=signin to open login first.
-  const [authMode, setAuthMode] = useState(() => {
-    try {
-      const q = new URLSearchParams(window.location.search).get("auth");
-      if (q === "signin") return "signin";
-      if (q === "signup") return "signup";
-    } catch {
-      /* ignore */
-    }
-    return "signup";
-  });
   const [users, setUsers] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState(1);
   const [darkMode, setDarkMode] = useState(true);
@@ -94,13 +81,15 @@ const App = () => {
   }
 
   if (!isAuthenticated) {
+    // Cinematic intro flow: splash -> intro story -> get started -> auth -> dashboard.
+    // Returning users (smartspend.seenIntro=true) skip straight to /auth/signin.
     return (
       <ToastProvider>
-        {authMode === "signin" ? (
-          <SignIn onSwitchToSignup={() => setAuthMode("signup")} />
-        ) : (
-          <SignUp onSwitchToSignin={() => setAuthMode("signin")} />
-        )}
+        <IntroFlow
+          onComplete={() => {
+            /* AuthContext flips isAuthenticated, which unmounts the flow. */
+          }}
+        />
       </ToastProvider>
     );
   }
